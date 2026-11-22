@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hobbes Finance</title>
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --surface: #f8fafc;
+      --border: #cbd5e1;
+      --text: #0f172a;
+      --muted: #475569;
+      --blue: #1d4ed8;
+      --red: #dc2626;
+      --green: #15803d;
+      --brown: #92400e;
+      --navy: #0f2544;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 18px 22px 40px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .app-shell {
+      max-width: 1480px;
+      margin: 0 auto;
+    }
+
+    /* TOP GRID: Main Landscape Chart (Left) + Logo & Graph Controls (Right) */
+    .top-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 290px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .main-chart-column {
+      min-width: 0;
+    }
+
+    .ticker-banner {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--navy);
+    }
+
+    .ticker-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ticker-symbol {
+      font-size: 1.55rem;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .ticker-name {
+      font-size: 0.95rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .ticker-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 0.95rem;
+    }
+
+    .price-now {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .price-change {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .price-change.up { color: var(--green); }
+    .price-change.down { color: var(--red); }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: var(--navy);
+      text-transform: uppercase;
+    }
+
+    .chart-box {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: var(--surface);
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .swatch {
+      width: 12px;
+      height: 4px;
+      border-radius: 2px;
+      display: inline-block;
+    }
+
+    /* Landscape Main Chart */
+    #main-chart {
+      width: 100%;
+      height: 480px;
+    }
+
+    /* RIGHT SIDEBAR: Logo Top-Right + Main Graph Controls */
+    .right-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .logo-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 4px 0;
+    }
+
+    .logo-wrap img {
+      width: 145px;
+      height: 145px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    .control-panel {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-heading {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--navy);
+      margin: 0 0 6px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      width: 100%;
+      padding: 7px 9px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 7px 13px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover { background: #1e40af; }
+
+    .hint-text {
+      font-size: 0.74rem;
+      color: var(--muted);
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+
+    .timeframe-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 5px;
+    }
+
+    .tf-btn,
+    .seg-btn {
+      padding: 6px 4px;
+      border: 1.5px solid var(--border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 5px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .tf-btn.active,
+    .seg-btn.active {
+      background: var(--navy);
+      color: #ffffff;
+      border-color: var(--navy);
+    }
+
+    .seg-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .toggle-row input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
+
+    .status-bar {
+      font-size: 0.8rem;
+      color: var(--muted);
+      min-height: 18px;
+    }
+
+    .status-bar.error {
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    /* NARROW SUB-CHARTS BELOW MAIN CHART */
+    .subcharts-section {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .subchart-wrapper {
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: #ffffff;
+      overflow: hidden;
+    }
+
+    .subchart-wrapper.hidden {
+      display: none;
+    }
+
+    .subchart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 12px;
+      background: var(--surface);
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .subchart-canvas {
+      width: 100%;
+      height: 155px;
+    }
+
+    /* INDICATOR CONTROLS BELOW SUB-CHARTS */
+    .indicators-section {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 2px solid var(--navy);
+    }
+
+    .indicators-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .indicator-card {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .field-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    @media (max-width: 980px) {
+      .top-grid {
+        grid-template-columns: 1fr;
+      }
+      .right-sidebar {
+        order: -1;
+      }
+      .indicators-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <!-- TOP ROW: Landscape Main Chart (Left) + Logo & Main Controls (Right) -->
+    <div class="top-grid">
+      <div class="main-chart-column">
+        <div class="ticker-banner">
+          <div class="ticker-title">
+            <span id="display-symbol" class="ticker-symbol">RY.TO</span>
+            <span id="display-name" class="ticker-name">Loading...</span>
+            <span id="display-exchange" class="badge"></span>
+          </div>
+          <div class="ticker-meta">
+            <span id="display-price" class="price-now">--</span>
+            <span id="display-change" class="price-change">--</span>
+            <span id="cache-badge" class="badge" style="display:none;"></span>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <div id="main-legend" class="chart-legend"></div>
+          <div id="main-chart"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDEBAR: Logo Top-Right + Graph Controls Below -->
+      <aside class="right-sidebar">
+        <div class="logo-wrap">
+          <img src="logo.jpg" alt="Hobbes Finance Logo" />
+        </div>
+
+        <div class="control-panel">
+          <div>
+            <div class="panel-heading">Ticker Symbol</div>
+            <div class="input-row">
+              <input id="ticker-input" type="text" value="RY.TO" placeholder="e.g., RY.TO, NVDA, WTI" />
+              <button id="load-btn" class="btn-primary">Load</button>
+            </div>
+            <div class="hint-text">Supports US, TSX (<code>.TO</code>), TSXV (<code>.V</code>), or shortcuts: <code>S&amp;P</code>, <code>TSX</code>, <code>WTI</code>, <code>GOLD</code>.</div>
+          </div>
+
+          <div>
+            <div class="panel-heading">Timeframe</div>
+            <div class="timeframe-grid" id="timeframe-buttons">
+              <button class="tf-btn" data-tf="3M">3M</button>
+              <button class="tf-btn" data-tf="6M">6M</button>
+              <button class="tf-btn" data-tf="12M">12M</button>
+              <button class="tf-btn" data-tf="2Y">2Y</button>
+              <button class="tf-btn active" data-tf="5Y">5Y</button>
+              <button class="tf-btn" data-tf="10Y">10Y</button>
+              <button class="tf-btn" data-tf="20Y">20Y</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-heading">Chart Type</div>
+            <div class="seg-group">
+              <button id="type-line" class="seg-btn active">Line</button>
+              <button id="type-candle" class="seg-btn">Candle</button>
+            </div>
+          </div>
+
+          <div>
+            <div class="panel-heading">Normalized Comparison</div>
+            <label class="toggle-row" style="margin-bottom:6px;">
+              <span>Compare Overlay</span>
+              <input id="compare-toggle" type="checkbox" />
+            </label>
+            <div class="input-row">
+              <input id="compare-input" type="text" value="TSX" placeholder="e.g., S&amp;P, TSX, WTI" />
+              <button id="compare-load-btn" class="btn-primary" style="background: var(--brown);">Set</button>
+            </div>
+            <div class="hint-text">Anchored to primary ticker price at left edge of active timeframe.</div>
+          </div>
+
+          <div>
+            <label class="toggle-row">
+              <span>Volume Bars (Base of Chart)</span>
+              <input id="volume-toggle" type="checkbox" checked />
+            </label>
+          </div>
+
+          <div id="status-bar" class="status-bar">Ready.</div>
+        </div>
+      </aside>
+    </div>
+
+    <!-- MIDDLE: Narrow Indicator Sub-Charts -->
+    <section class="subcharts-section">
+      <div id="ma-sub-wrap" class="subchart-wrapper">
+        <div class="subchart-header">
+          <span id="ma-sub-title" style="color: var(--blue);">Moving Average Distance</span>
+          <span id="ma-sub-readout"></span>
+        </div>
+        <div id="ma-chart" class="subchart-canvas"></div>
+      </div>
+
+      <div id="rsi-sub-wrap" class="subchart-wrapper">
+        <div class="subchart-header">
+          <span id="rsi-sub-title" style="color: var(--green);">RSI</span>
+          <span id="rsi-sub-readout"></span>
+        </div>
+        <div id="rsi-chart" class="subchart-canvas"></div>
+      </div>
+
+      <div id="macd-sub-wrap" class="subchart-wrapper hidden">
+        <div class="subchart-header">
+          <span id="macd-sub-title" style="color: var(--brown);">MACD</span>
+          <span id="macd-sub-readout"></span>
+        </div>
+        <div id="macd-chart" class="subchart-canvas"></div>
+      </div>
+    </section>
+
+    <!-- BOTTOM: Indicator Controls -->
+    <section class="indicators-section">
+      <div class="indicators-grid">
+        <!-- Moving Average Card -->
+        <div class="indicator-card">
+          <div class="card-title">
+            <span>1. Moving Average (MA)</span>
+            <span class="swatch" style="background: var(--red); width: 18px;"></span>
+          </div>
+          <div>
+            <label class="field-label" for="ma-period">Days</label>
+            <input id="ma-period" type="number" min="2" max="500" value="200" />
+          </div>
+          <label class="toggle-row">
+            <span>Plot on Main Graph</span>
+            <input id="ma-overlay-toggle" type="checkbox" checked />
+          </label>
+          <label class="toggle-row">
+            <span>Show Narrow Sub-Chart</span>
+            <input id="ma-sub-toggle" type="checkbox" checked />
+          </label>
+          <div>
+            <span class="field-label">Sub-Chart Mode (20Y Log-Price Percentiles)</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-mode-group="ma" data-mode="raw">Raw (%)</button>
+              <button class="seg-btn" data-mode-group="ma" data-mode="percentile">Percentiles</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RSI Card -->
+        <div class="indicator-card">
+          <div class="card-title">
+            <span>2. RSI</span>
+            <span class="swatch" style="background: var(--green); width: 18px;"></span>
+          </div>
+          <div>
+            <label class="field-label" for="rsi-period">Days</label>
+            <input id="rsi-period" type="number" min="2" max="200" value="14" />
+          </div>
+          <label class="toggle-row">
+            <span>Show Narrow Sub-Chart</span>
+            <input id="rsi-sub-toggle" type="checkbox" checked />
+          </label>
+          <div>
+            <span class="field-label">Mode (20Y Log-Price Percentiles)</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-mode-group="rsi" data-mode="raw">Raw</button>
+              <button class="seg-btn" data-mode-group="rsi" data-mode="percentile">Percentiles</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MACD Card -->
+        <div class="indicator-card">
+          <div class="card-title">
+            <span>3. MACD</span>
+            <span class="swatch" style="background: var(--brown); width: 18px;"></span>
+          </div>
+          <div class="field-pair">
+            <div>
+              <label class="field-label" for="macd-fast">Fast Days</label>
+              <input id="macd-fast" type="number" min="2" max="200" value="12" />
+            </div>
+            <div>
+              <label class="field-label" for="macd-slow">Slow Days</label>
+              <input id="macd-slow" type="number" min="3" max="300" value="26" />
+            </div>
+          </div>
+          <label class="toggle-row">
+            <span>Show Narrow Sub-Chart</span>
+            <input id="macd-sub-toggle" type="checkbox" />
+          </label>
+          <div>
+            <span class="field-label">Mode (20Y Log-Price Percentiles)</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-mode-group="macd" data-mode="raw">Raw</button>
+              <button class="seg-btn" data-mode-group="macd" data-mode="percentile">Percentiles</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Firebase SDK (Optional Firestore Caching - activates once config is pasted in app.js) -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
