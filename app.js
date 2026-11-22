@@ -1,9 +1,10 @@
 // =========================================================================
-// 1. LOCAL BROWSER CACHE (IndexedDB — persists across refreshes/restarts)
+// 1. LOCAL BROWSER CACHE (IndexedDB for 20Y data + localStorage for settings)
 // =========================================================================
 const DB_NAME = "hobbes-finance-cache";
 const STORE_NAME = "tickers";
 const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+const PREFS_KEY = "hobbes-finance-prefs-v1";
 
 function openCacheDB() {
   return new Promise((resolve, reject) => {
@@ -48,21 +49,98 @@ async function writeLocalCache(key, data) {
 }
 
 // =========================================================================
-// 2. APP STATE
+// 2. APP STATE & SAVED PREFERENCES
 // =========================================================================
-const state = {
-  mainData: null,        // { symbol, name, currency, exchange, bars: [...] }
-  compareData: null,
+const DEFAULT_PREFS = {
+  ticker: "RY.TO",
+  compareTicker: "TSX",
   timeframe: "5Y",
   chartType: "line",     // "line" | "candle"
   scaleType: "linear",   // "linear" | "log"
   compareOn: false,
   volumeOn: true,
-  indicatorMode: "raw",  // "raw" | "percentile" (global across MA, RSI, MACD)
+  indicatorMode: "raw",  // "raw" | "percentile"
   ma: { period: 200, overlay: true, sub: true },
   rsi: { period: 14, sub: true },
   macd: { fast: 12, slow: 26, sub: false }
 };
+
+function loadSavedPrefs() {
+  try {
+    const raw = localStorage.getItem(PREFS_KEY);
+    if (!raw) return structuredClone(DEFAULT_PREFS);
+    const saved = JSON.parse(raw);
+    return {
+      ...DEFAULT_PREFS,
+      ...saved,
+      ma: { ...DEFAULT_PREFS.ma, ...(saved.ma || {}) },
+      rsi: { ...DEFAULT_PREFS.rsi, ...(saved.rsi || {}) },
+      macd: { ...DEFAULT_PREFS.macd, ...(saved.macd || {}) }
+    };
+  } catch {
+    return structuredClone(DEFAULT_PREFS);
+  }
+}
+
+const savedPrefs = loadSavedPrefs();
+
+const state = {
+  mainData: null,
+  compareData: null,
+  ...savedPrefs
+};
+
+function savePrefs() {
+  try {
+    const toSave = {
+      ticker: state.ticker,
+      compareTicker: state.compareTicker,
+      timeframe: state.timeframe,
+      chartType: state.chartType,
+      scaleType: state.scaleType,
+      compareOn: state.compareOn,
+      volumeOn: state.volumeOn,
+      indicatorMode: state.indicatorMode,
+      ma: state.ma,
+      rsi: state.rsi,
+      macd: state.macd
+    };
+    localStorage.setItem(PREFS_KEY, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+function syncUIWithState() {
+  document.getElementById("ticker-input").value = state.ticker;
+  document.getElementById("compare-input").value = state.compareTicker;
+  document.getElementById("compare-toggle").checked = state.compareOn;
+  document.getElementById("volume-toggle").checked = state.volumeOn;
+
+  document.querySelectorAll(".tf-btn").forEach((b) => {
+    b.classList.toggle("active", b.dataset.tf === state.timeframe);
+  });
+
+  document.getElementById("type-line").classList.toggle("active", state.chartType === "line");
+  document.getElementById("type-candle").classList.toggle("active", state.chartType === "candle");
+
+  document.getElementById("scale-linear").classList.toggle("active", state.scaleType === "linear");
+  document.getElementById("scale-log").classList.toggle("active", state.scaleType === "log");
+
+  document.getElementById("ma-period").value = state.ma.period;
+  document.getElementById("ma-overlay-toggle").checked = state.ma.overlay;
+  document.getElementById("ma-sub-toggle").checked = state.ma.sub;
+
+  document.getElementById("rsi-period").value = state.rsi.period;
+  document.getElementById("rsi-sub-toggle").checked = state.rsi.sub;
+
+  document.getElementById("macd-fast").value = state.macd.fast;
+  document.getElementById("macd-slow").value = state.macd.slow;
+  document.getElementById("macd-sub-toggle").checked = state.macd.sub;
+
+  document.getElementById("mode-raw").classList.toggle("active", state.indicatorMode === "raw");
+  document.getElementById("mode-percentile").classList.toggle("active", state.indicatorMode === "percentile");
+}
 
 const COLORS = {
   blue: "#1d4ed8",
@@ -584,11 +662,14 @@ function setStatus(msg, isError = false) {
 }
 
 async function loadMainTicker(symbol) {
-  if (!symbol.trim()) return;
-  setStatus(`Loading ${symbol.toUpperCase()}...`);
+  const cleaned = symbol.trim().toUpperCase();
+  if (!cleaned) return;
+  setStatus(`Loading ${cleaned}...`);
   try {
-    const { data, source } = await fetchTickerData(symbol);
+    const { data, source } = await fetchTickerData(cleaned);
     state.mainData = data;
+    state.ticker = cleaned;
+    savePrefs();
     const badge = document.getElementById("cache-badge");
     badge.style.display = "inline-block";
     badge.textContent = source === "local" ? "Local Cache" : source === "memory" ? "Cached" : "Live Yahoo";
@@ -600,11 +681,14 @@ async function loadMainTicker(symbol) {
 }
 
 async function loadCompareTicker(symbol) {
-  if (!symbol.trim()) return;
-  setStatus(`Loading comparison ${symbol.toUpperCase()}...`);
+  const cleaned = symbol.trim().toUpperCase();
+  if (!cleaned) return;
+  setStatus(`Loading comparison ${cleaned}...`);
   try {
-    const { data } = await fetchTickerData(symbol);
+    const { data } = await fetchTickerData(cleaned);
     state.compareData = data;
+    state.compareTicker = cleaned;
+    savePrefs();
     setStatus(`Comparison set to ${data.symbol}.`);
     renderAll();
   } catch (err) {
@@ -627,6 +711,7 @@ document.getElementById("timeframe-buttons").addEventListener("click", (e) => {
   document.querySelectorAll(".tf-btn").forEach((b) => b.classList.remove("active"));
   btn.classList.add("active");
   state.timeframe = btn.dataset.tf;
+  savePrefs();
   renderAll();
 });
 
@@ -634,6 +719,7 @@ document.getElementById("type-line").addEventListener("click", () => {
   state.chartType = "line";
   document.getElementById("type-line").classList.add("active");
   document.getElementById("type-candle").classList.remove("active");
+  savePrefs();
   renderAll();
 });
 
@@ -641,6 +727,7 @@ document.getElementById("type-candle").addEventListener("click", () => {
   state.chartType = "candle";
   document.getElementById("type-candle").classList.add("active");
   document.getElementById("type-line").classList.remove("active");
+  savePrefs();
   renderAll();
 });
 
@@ -648,6 +735,7 @@ document.getElementById("scale-linear").addEventListener("click", () => {
   state.scaleType = "linear";
   document.getElementById("scale-linear").classList.add("active");
   document.getElementById("scale-log").classList.remove("active");
+  savePrefs();
   renderAll();
 });
 
@@ -655,11 +743,13 @@ document.getElementById("scale-log").addEventListener("click", () => {
   state.scaleType = "log";
   document.getElementById("scale-log").classList.add("active");
   document.getElementById("scale-linear").classList.remove("active");
+  savePrefs();
   renderAll();
 });
 
 document.getElementById("compare-toggle").addEventListener("change", async (e) => {
   state.compareOn = e.target.checked;
+  savePrefs();
   if (state.compareOn && !state.compareData) {
     await loadCompareTicker(document.getElementById("compare-input").value);
   } else {
@@ -670,6 +760,7 @@ document.getElementById("compare-toggle").addEventListener("change", async (e) =
 document.getElementById("compare-load-btn").addEventListener("click", async () => {
   document.getElementById("compare-toggle").checked = true;
   state.compareOn = true;
+  savePrefs();
   await loadCompareTicker(document.getElementById("compare-input").value);
 });
 
@@ -677,48 +768,58 @@ document.getElementById("compare-input").addEventListener("keydown", async (e) =
   if (e.key === "Enter") {
     document.getElementById("compare-toggle").checked = true;
     state.compareOn = true;
+    savePrefs();
     await loadCompareTicker(e.target.value);
   }
 });
 
 document.getElementById("volume-toggle").addEventListener("change", (e) => {
   state.volumeOn = e.target.checked;
+  savePrefs();
   renderAll();
 });
 
 // Indicator Controls
 document.getElementById("ma-period").addEventListener("change", (e) => {
   state.ma.period = Number(e.target.value) || 200;
+  savePrefs();
   renderAll();
 });
 document.getElementById("ma-overlay-toggle").addEventListener("change", (e) => {
   state.ma.overlay = e.target.checked;
+  savePrefs();
   renderAll();
 });
 document.getElementById("ma-sub-toggle").addEventListener("change", (e) => {
   state.ma.sub = e.target.checked;
+  savePrefs();
   renderAll();
 });
 
 document.getElementById("rsi-period").addEventListener("change", (e) => {
   state.rsi.period = Number(e.target.value) || 14;
+  savePrefs();
   renderAll();
 });
 document.getElementById("rsi-sub-toggle").addEventListener("change", (e) => {
   state.rsi.sub = e.target.checked;
+  savePrefs();
   renderAll();
 });
 
 document.getElementById("macd-fast").addEventListener("change", (e) => {
   state.macd.fast = Number(e.target.value) || 12;
+  savePrefs();
   renderAll();
 });
 document.getElementById("macd-slow").addEventListener("change", (e) => {
   state.macd.slow = Number(e.target.value) || 26;
+  savePrefs();
   renderAll();
 });
 document.getElementById("macd-sub-toggle").addEventListener("change", (e) => {
   state.macd.sub = e.target.checked;
+  savePrefs();
   renderAll();
 });
 
@@ -727,6 +828,7 @@ document.getElementById("mode-raw").addEventListener("click", () => {
   state.indicatorMode = "raw";
   document.getElementById("mode-raw").classList.add("active");
   document.getElementById("mode-percentile").classList.remove("active");
+  savePrefs();
   renderAll();
 });
 
@@ -734,6 +836,7 @@ document.getElementById("mode-percentile").addEventListener("click", () => {
   state.indicatorMode = "percentile";
   document.getElementById("mode-percentile").classList.add("active");
   document.getElementById("mode-raw").classList.remove("active");
+  savePrefs();
   renderAll();
 });
 
@@ -750,5 +853,13 @@ window.addEventListener("resize", () => {
   resize(charts.macd, "macd-chart");
 });
 
-// Initial load
-loadMainTicker("RY.TO");
+// Initial load using saved settings
+async function init() {
+  syncUIWithState();
+  await loadMainTicker(state.ticker);
+  if (state.compareOn && state.compareTicker) {
+    await loadCompareTicker(state.compareTicker);
+  }
+}
+
+init();
