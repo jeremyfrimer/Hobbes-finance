@@ -55,11 +55,13 @@ const state = {
   compareData: null,
   timeframe: "5Y",
   chartType: "line",     // "line" | "candle"
+  scaleType: "linear",   // "linear" | "log"
   compareOn: false,
   volumeOn: true,
-  ma: { period: 200, overlay: true, sub: true, mode: "raw" },
-  rsi: { period: 14, sub: true, mode: "raw" },
-  macd: { fast: 12, slow: 26, sub: false, mode: "raw" }
+  indicatorMode: "raw",  // "raw" | "percentile" (global across MA, RSI, MACD)
+  ma: { period: 200, overlay: true, sub: true },
+  rsi: { period: 14, sub: true },
+  macd: { fast: 12, slow: 26, sub: false }
 };
 
 const COLORS = {
@@ -88,14 +90,12 @@ async function fetchTickerData(rawSymbol) {
     return { data: memoryCache.get(key), source: "memory" };
   }
 
-  // Try Local Browser Cache (IndexedDB) first
   const cached = await readLocalCache(key);
   if (cached && cached.data && Date.now() - cached.updatedAt < CACHE_TTL_MS) {
     memoryCache.set(key, cached.data);
     return { data: cached.data, source: "local" };
   }
 
-  // Fetch fresh 20y data from Netlify Function
   const res = await fetch(`/.netlify/functions/stock?symbol=${encodeURIComponent(rawSymbol)}`);
   const json = await res.json();
   if (!res.ok || json.error) {
@@ -164,7 +164,6 @@ function computeRSI(values, period) {
   return out;
 }
 
-// Convert any series of numbers (with nulls) to 0-100 percentile ranks across the full 20y distribution
 function toPercentiles(series) {
   const valid = series.filter((v) => v != null && isFinite(v)).sort((a, b) => a - b);
   const n = valid.length;
@@ -208,7 +207,7 @@ function getTimeframeStartDate(latestDateStr, tf) {
 let charts = { main: null, ma: null, rsi: null, macd: null };
 let isSyncing = false;
 
-function createBaseChart(container, height) {
+function createBaseChart(container, height, extraRightScale = {}) {
   return LightweightCharts.createChart(container, {
     width: container.clientWidth,
     height,
@@ -222,7 +221,9 @@ function createBaseChart(container, height) {
       horzLines: { color: COLORS.grid }
     },
     rightPriceScale: {
-      borderColor: "#cbd5e1"
+      borderColor: "#cbd5e1",
+      minimumWidth: 72,
+      ...extraRightScale
     },
     timeScale: {
       borderColor: "#cbd5e1",
@@ -258,6 +259,10 @@ function syncChartTimeScales(activeCharts) {
   });
 }
 
+const PCT_AUTOSCALE = () => ({
+  priceRange: { minValue: 0, maxValue: 100 }
+});
+
 // =========================================================================
 // 6. RENDER EVERYTHING
 // =========================================================================
@@ -269,9 +274,10 @@ function renderAll() {
   const fullBars = state.mainData.bars;
   const fullCloses = fullBars.map((b) => b.close);
   const fullLogCloses = fullBars.map((b) => Math.log(b.close));
+  const isPct = state.indicatorMode === "percentile";
 
   // --- Compute all indicators on FULL 20Y data first ---
-  // 1. MA Overlay (always raw price) & MA Distance Sub-chart
+  // 1. MA Overlay (raw price) & MA Distance Sub-chart
   const maPeriod = Math.max(2, Number(state.ma.period) || 200);
   const maRawPrice = computeSMA(fullCloses, maPeriod);
   const maDistPct = fullCloses.map((c, i) =>
@@ -308,7 +314,6 @@ function renderAll() {
     v != null && macdSignalRaw[i] != null ? v - macdSignalRaw[i] : null
   );
 
-  // MACD Log-Price Percentiles
   const emaFastLog = computeEMA(fullLogCloses, macdFast);
   const emaSlowLog = computeEMA(fullLogCloses, macdSlow);
   const macdLogLine = fullLogCloses.map((_, i) =>
@@ -344,7 +349,11 @@ function renderAll() {
 
   // --- Main Chart ---
   const mainContainer = document.getElementById("main-chart");
-  charts.main = createBaseChart(mainContainer, 480);
+  charts.main = createBaseChart(mainContainer, 480, {
+    mode: state.scaleType === "log"
+      ? LightweightCharts.PriceScaleMode.Logarithmic
+      : LightweightCharts.PriceScaleMode.Normal
+  });
 
   const legendItems = [];
   if (state.chartType === "candle") {
@@ -413,11 +422,13 @@ function renderAll() {
     });
   }
 
-  // Volume at base of Main Chart (Yahoo Finance style)
+  // Volume at base of Main Chart (no right-axis tag overlap)
   if (state.volumeOn) {
     const volSeries = charts.main.addHistogramSeries({
       priceFormat: { type: "volume" },
-      priceScaleId: "volume"
+      priceScaleId: "volume",
+      lastValueVisible: false,
+      priceLineVisible: false
     });
     charts.main.priceScale("volume").applyOptions({
       scaleMargins: { top: 0.82, bottom: 0 }
@@ -438,11 +449,12 @@ function renderAll() {
   charts.main.timeScale().fitContent();
   const activeCharts = [charts.main];
 
+  const pctScaleOpts = isPct ? { scaleMargins: { top: 0.04, bottom: 0.04 } } : {};
+
   // --- Sub-Chart 1: MA Distance ---
   const maWrap = document.getElementById("ma-sub-wrap");
   if (state.ma.sub) {
     maWrap.classList.remove("hidden");
-    const isPct = state.ma.mode === "percentile";
     const data = sliceSeries(isPct ? maDistPercentiles : maDistPct);
     const lastVal = data.length ? data[data.length - 1].value : null;
 
@@ -452,8 +464,12 @@ function renderAll() {
     document.getElementById("ma-sub-readout").textContent =
       lastVal != null ? (isPct ? `${lastVal.toFixed(1)}th %ile` : `${lastVal >= 0 ? "+" : ""}${lastVal.toFixed(2)}%`) : "";
 
-    charts.ma = createBaseChart(document.getElementById("ma-chart"), 155);
-    const s = charts.ma.addLineSeries({ color: COLORS.blue, lineWidth: 2 });
+    charts.ma = createBaseChart(document.getElementById("ma-chart"), 155, pctScaleOpts);
+    const s = charts.ma.addLineSeries({
+      color: COLORS.blue,
+      lineWidth: 2,
+      autoscaleInfoProvider: isPct ? PCT_AUTOSCALE : undefined
+    });
     s.setData(data);
 
     if (isPct) {
@@ -473,7 +489,6 @@ function renderAll() {
   const rsiWrap = document.getElementById("rsi-sub-wrap");
   if (state.rsi.sub) {
     rsiWrap.classList.remove("hidden");
-    const isPct = state.rsi.mode === "percentile";
     const data = sliceSeries(isPct ? rsiPercentiles : rsiRaw);
     const lastVal = data.length ? data[data.length - 1].value : null;
 
@@ -483,8 +498,12 @@ function renderAll() {
     document.getElementById("rsi-sub-readout").textContent =
       lastVal != null ? (isPct ? `${lastVal.toFixed(1)}th %ile` : lastVal.toFixed(1)) : "";
 
-    charts.rsi = createBaseChart(document.getElementById("rsi-chart"), 155);
-    const s = charts.rsi.addLineSeries({ color: COLORS.green, lineWidth: 2 });
+    charts.rsi = createBaseChart(document.getElementById("rsi-chart"), 155, pctScaleOpts);
+    const s = charts.rsi.addLineSeries({
+      color: COLORS.green,
+      lineWidth: 2,
+      autoscaleInfoProvider: isPct ? PCT_AUTOSCALE : undefined
+    });
     s.setData(data);
 
     const hiLine = isPct ? 80 : 70;
@@ -503,13 +522,12 @@ function renderAll() {
   const macdWrap = document.getElementById("macd-sub-wrap");
   if (state.macd.sub) {
     macdWrap.classList.remove("hidden");
-    const isPct = state.macd.mode === "percentile";
 
     document.getElementById("macd-sub-title").textContent = isPct
       ? `MACD (${macdFast}, ${macdSlow}) — 20Y Log-Price Percentile (0–100%)`
       : `MACD (${macdFast}, ${macdSlow}, 9) — Raw`;
 
-    charts.macd = createBaseChart(document.getElementById("macd-chart"), 155);
+    charts.macd = createBaseChart(document.getElementById("macd-chart"), 155, pctScaleOpts);
 
     if (isPct) {
       const data = sliceSeries(macdPercentiles);
@@ -517,7 +535,11 @@ function renderAll() {
       document.getElementById("macd-sub-readout").textContent =
         lastVal != null ? `${lastVal.toFixed(1)}th %ile` : "";
 
-      const s = charts.macd.addLineSeries({ color: COLORS.brown, lineWidth: 2 });
+      const s = charts.macd.addLineSeries({
+        color: COLORS.brown,
+        lineWidth: 2,
+        autoscaleInfoProvider: PCT_AUTOSCALE
+      });
       s.setData(data);
       s.createPriceLine({ price: 80, color: COLORS.red, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
       s.createPriceLine({ price: 50, color: "#64748b", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
@@ -528,7 +550,7 @@ function renderAll() {
         value: p.value,
         color: p.value >= 0 ? "rgba(21, 128, 61, 0.45)" : "rgba(220, 38, 38, 0.45)"
       }));
-      const histSeries = charts.macd.addHistogramSeries({ priceLineVisible: false });
+      const histSeries = charts.macd.addHistogramSeries({ priceLineVisible: false, lastValueVisible: false });
       histSeries.setData(histData);
 
       const lineData = sliceSeries(macdRawLine);
@@ -590,7 +612,7 @@ async function loadCompareTicker(symbol) {
   }
 }
 
-// Wire up controls
+// Top Controls
 document.getElementById("load-btn").addEventListener("click", () => {
   loadMainTicker(document.getElementById("ticker-input").value);
 });
@@ -619,6 +641,20 @@ document.getElementById("type-candle").addEventListener("click", () => {
   state.chartType = "candle";
   document.getElementById("type-candle").classList.add("active");
   document.getElementById("type-line").classList.remove("active");
+  renderAll();
+});
+
+document.getElementById("scale-linear").addEventListener("click", () => {
+  state.scaleType = "linear";
+  document.getElementById("scale-linear").classList.add("active");
+  document.getElementById("scale-log").classList.remove("active");
+  renderAll();
+});
+
+document.getElementById("scale-log").addEventListener("click", () => {
+  state.scaleType = "log";
+  document.getElementById("scale-log").classList.add("active");
+  document.getElementById("scale-linear").classList.remove("active");
   renderAll();
 });
 
@@ -686,16 +722,19 @@ document.getElementById("macd-sub-toggle").addEventListener("change", (e) => {
   renderAll();
 });
 
-// Raw vs Percentile toggle buttons
-document.querySelectorAll("[data-mode-group]").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const group = btn.dataset.modeGroup;
-    const mode = btn.dataset.mode;
-    state[group].mode = mode;
-    document.querySelectorAll(`[data-mode-group="${group}"]`).forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    renderAll();
-  });
+// Global Raw vs Percentiles toggle
+document.getElementById("mode-raw").addEventListener("click", () => {
+  state.indicatorMode = "raw";
+  document.getElementById("mode-raw").classList.add("active");
+  document.getElementById("mode-percentile").classList.remove("active");
+  renderAll();
+});
+
+document.getElementById("mode-percentile").addEventListener("click", () => {
+  state.indicatorMode = "percentile";
+  document.getElementById("mode-percentile").classList.add("active");
+  document.getElementById("mode-raw").classList.remove("active");
+  renderAll();
 });
 
 // Responsive resize
