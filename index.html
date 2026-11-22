@@ -23,37 +23,176 @@
 
     body {
       margin: 0;
-      padding: 18px 22px 40px;
+      padding: 14px 20px 40px;
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     .app-shell {
-      max-width: 1480px;
+      max-width: 1520px;
       margin: 0 auto;
     }
 
-    /* TOP GRID: Main Landscape Chart (Left) + Logo & Graph Controls (Right) */
-    .top-grid {
+    /* TOP BAR: Controls (Left) + Logo (Right) */
+    .top-header {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 290px;
-      gap: 20px;
-      align-items: start;
+      grid-template-columns: minmax(0, 1fr) 115px;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 14px;
     }
 
-    .main-chart-column {
-      min-width: 0;
+    .top-controls {
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
     }
 
+    .controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 14px;
+    }
+
+    .ctrl-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .ctrl-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--navy);
+    }
+
+    .input-row {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      padding: 6px 9px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      background: #ffffff;
+      color: var(--text);
+    }
+
+    #ticker-input { width: 145px; }
+    #compare-input { width: 130px; }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary:hover { background: #1e40af; }
+
+    .btn-row {
+      display: flex;
+      gap: 4px;
+    }
+
+    .tf-btn,
+    .seg-btn {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      background: #ffffff;
+      color: var(--text);
+      border-radius: 5px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tf-btn.active,
+    .seg-btn.active {
+      background: var(--navy);
+      color: #ffffff;
+      border-color: var(--navy);
+    }
+
+    .inline-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      cursor: pointer;
+      height: 32px;
+    }
+
+    .inline-check input[type="checkbox"],
+    .toggle-row input[type="checkbox"] {
+      width: 17px;
+      height: 17px;
+      accent-color: var(--blue);
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .status-bar {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-left: auto;
+      align-self: center;
+    }
+
+    .status-bar.error {
+      color: var(--red);
+      font-weight: 700;
+    }
+
+    .logo-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .logo-wrap img {
+      width: 110px;
+      height: 110px;
+      object-fit: contain;
+      border-radius: 50%;
+    }
+
+    /* FULL-WIDTH TICKER BANNER & MAIN CHART */
     .ticker-banner {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
       justify-content: space-between;
       gap: 10px;
-      margin-bottom: 10px;
-      padding-bottom: 8px;
+      margin-bottom: 8px;
+      padding-bottom: 7px;
       border-bottom: 2px solid var(--navy);
     }
 
@@ -65,7 +204,7 @@
     }
 
     .ticker-symbol {
-      font-size: 1.55rem;
+      font-size: 1.5rem;
       font-weight: 800;
       color: var(--navy);
     }
@@ -98,7 +237,7 @@
     .price-change.down { color: var(--red); }
 
     .badge {
-      font-size: 0.75rem;
+      font-size: 0.74rem;
       font-weight: 700;
       padding: 2px 7px;
       border-radius: 4px;
@@ -112,13 +251,12 @@
       border-radius: 8px;
       background: #ffffff;
       overflow: hidden;
-      position: relative;
     }
 
     .chart-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 14px;
+      gap: 16px;
       padding: 7px 12px;
       font-size: 0.82rem;
       font-weight: 600;
@@ -139,158 +277,14 @@
       display: inline-block;
     }
 
-    /* Landscape Main Chart */
     #main-chart {
       width: 100%;
       height: 480px;
     }
 
-    /* RIGHT SIDEBAR: Logo Top-Right + Main Graph Controls */
-    .right-sidebar {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .logo-wrap {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 4px 0;
-    }
-
-    .logo-wrap img {
-      width: 145px;
-      height: 145px;
-      object-fit: contain;
-      border-radius: 50%;
-    }
-
-    .control-panel {
-      background: var(--surface);
-      border: 1.5px solid var(--border);
-      border-radius: 8px;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .panel-heading {
-      font-size: 0.78rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--navy);
-      margin: 0 0 6px;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 6px;
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      width: 100%;
-      padding: 7px 9px;
-      border: 1.5px solid var(--border);
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      background: #ffffff;
-      color: var(--text);
-    }
-
-    input[type="text"]:focus,
-    input[type="number"]:focus {
-      outline: none;
-      border-color: var(--blue);
-    }
-
-    .btn-primary {
-      background: var(--blue);
-      color: #ffffff;
-      border: none;
-      border-radius: 6px;
-      padding: 7px 13px;
-      font-size: 0.88rem;
-      font-weight: 700;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-
-    .btn-primary:hover { background: #1e40af; }
-
-    .hint-text {
-      font-size: 0.74rem;
-      color: var(--muted);
-      margin-top: 4px;
-      line-height: 1.35;
-    }
-
-    .timeframe-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 5px;
-    }
-
-    .tf-btn,
-    .seg-btn {
-      padding: 6px 4px;
-      border: 1.5px solid var(--border);
-      background: #ffffff;
-      color: var(--text);
-      border-radius: 5px;
-      font-size: 0.82rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .tf-btn.active,
-    .seg-btn.active {
-      background: var(--navy);
-      color: #ffffff;
-      border-color: var(--navy);
-    }
-
-    .seg-group {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 5px;
-    }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      font-size: 0.88rem;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .toggle-row input[type="checkbox"] {
-      width: 17px;
-      height: 17px;
-      accent-color: var(--blue);
-      cursor: pointer;
-    }
-
-    .status-bar {
-      font-size: 0.8rem;
-      color: var(--muted);
-      min-height: 18px;
-    }
-
-    .status-bar.error {
-      color: var(--red);
-      font-weight: 700;
-    }
-
-    /* NARROW SUB-CHARTS BELOW MAIN CHART */
+    /* FULL-WIDTH NARROW SUB-CHARTS */
     .subcharts-section {
-      margin-top: 16px;
+      margin-top: 14px;
       display: flex;
       flex-direction: column;
       gap: 12px;
@@ -325,7 +319,7 @@
 
     /* INDICATOR CONTROLS BELOW SUB-CHARTS */
     .indicators-section {
-      margin-top: 20px;
+      margin-top: 18px;
       padding-top: 16px;
       border-top: 2px solid var(--navy);
     }
@@ -369,62 +363,97 @@
       margin-bottom: 3px;
     }
 
-    @media (max-width: 980px) {
-      .top-grid {
+    .indicator-card input[type="number"] {
+      width: 100%;
+    }
+
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    /* GLOBAL RAW VS PERCENTILES BAR AT VERY BOTTOM */
+    .global-mode-bar {
+      margin-top: 16px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .global-mode-label {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .global-mode-title {
+      font-size: 0.92rem;
+      font-weight: 800;
+      color: var(--navy);
+    }
+
+    .global-mode-desc {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .global-seg-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      min-width: 280px;
+    }
+
+    .global-seg-group .seg-btn {
+      padding: 8px 16px;
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 960px) {
+      .top-header {
         grid-template-columns: 1fr;
       }
-      .right-sidebar {
+      .logo-wrap {
         order: -1;
       }
       .indicators-grid {
         grid-template-columns: 1fr;
+      }
+      .status-bar {
+        margin-left: 0;
       }
     }
   </style>
 </head>
 <body>
   <div class="app-shell">
-    <!-- TOP ROW: Landscape Main Chart (Left) + Logo & Main Controls (Right) -->
-    <div class="top-grid">
-      <div class="main-chart-column">
-        <div class="ticker-banner">
-          <div class="ticker-title">
-            <span id="display-symbol" class="ticker-symbol">RY.TO</span>
-            <span id="display-name" class="ticker-name">Loading...</span>
-            <span id="display-exchange" class="badge"></span>
-          </div>
-          <div class="ticker-meta">
-            <span id="display-price" class="price-now">--</span>
-            <span id="display-change" class="price-change">--</span>
-            <span id="cache-badge" class="badge" style="display:none;"></span>
-          </div>
-        </div>
-
-        <div class="chart-box">
-          <div id="main-legend" class="chart-legend"></div>
-          <div id="main-chart"></div>
-        </div>
-      </div>
-
-      <!-- RIGHT SIDEBAR: Logo Top-Right + Graph Controls Below -->
-      <aside class="right-sidebar">
-        <div class="logo-wrap">
-          <img src="logo.jpg" alt="Hobbes Finance Logo" />
-        </div>
-
-        <div class="control-panel">
-          <div>
-            <div class="panel-heading">Ticker Symbol</div>
+    <!-- TOP BAR: All Main Graph Controls (Left) + Logo (Right) -->
+    <header class="top-header">
+      <div class="top-controls">
+        <!-- Row 1: Ticker, Timeframe, Chart Type, Scale -->
+        <div class="controls-row">
+          <div class="ctrl-group">
+            <label class="ctrl-label" for="ticker-input">Ticker Symbol</label>
             <div class="input-row">
-              <input id="ticker-input" type="text" value="RY.TO" placeholder="e.g., RY.TO, NVDA, WTI" />
+              <input id="ticker-input" type="text" value="RY.TO" placeholder="RY.TO, NVDA, WTI" title="Supports US, TSX (.TO), TSXV (.V), or shortcuts: S&P, TSX, WTI, GOLD" />
               <button id="load-btn" class="btn-primary">Load</button>
             </div>
-            <div class="hint-text">Supports US, TSX (<code>.TO</code>), TSXV (<code>.V</code>), or shortcuts: <code>S&amp;P</code>, <code>TSX</code>, <code>WTI</code>, <code>GOLD</code>.</div>
           </div>
 
-          <div>
-            <div class="panel-heading">Timeframe</div>
-            <div class="timeframe-grid" id="timeframe-buttons">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Timeframe</span>
+            <div class="btn-row" id="timeframe-buttons">
               <button class="tf-btn" data-tf="3M">3M</button>
               <button class="tf-btn" data-tf="6M">6M</button>
               <button class="tf-btn" data-tf="12M">12M</button>
@@ -435,40 +464,76 @@
             </div>
           </div>
 
-          <div>
-            <div class="panel-heading">Chart Type</div>
-            <div class="seg-group">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Chart Type</span>
+            <div class="btn-row">
               <button id="type-line" class="seg-btn active">Line</button>
               <button id="type-candle" class="seg-btn">Candle</button>
             </div>
           </div>
 
-          <div>
-            <div class="panel-heading">Normalized Comparison</div>
-            <label class="toggle-row" style="margin-bottom:6px;">
-              <span>Compare Overlay</span>
-              <input id="compare-toggle" type="checkbox" />
-            </label>
+          <div class="ctrl-group">
+            <span class="ctrl-label">Price Scale</span>
+            <div class="btn-row">
+              <button id="scale-linear" class="seg-btn active">Linear</button>
+              <button id="scale-log" class="seg-btn">Log</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 2: Normalized Comparison, Volume, Status -->
+        <div class="controls-row">
+          <div class="ctrl-group">
+            <span class="ctrl-label">Normalized Comparison</span>
             <div class="input-row">
-              <input id="compare-input" type="text" value="TSX" placeholder="e.g., S&amp;P, TSX, WTI" />
+              <label class="inline-check" title="Anchored to primary ticker price at left edge of active timeframe">
+                <input id="compare-toggle" type="checkbox" />
+                <span>Compare</span>
+              </label>
+              <input id="compare-input" type="text" value="TSX" placeholder="S&P, TSX, WTI" title="Index or ticker to overlay, anchored to left edge of timeframe" />
               <button id="compare-load-btn" class="btn-primary" style="background: var(--brown);">Set</button>
             </div>
-            <div class="hint-text">Anchored to primary ticker price at left edge of active timeframe.</div>
           </div>
 
-          <div>
-            <label class="toggle-row">
-              <span>Volume Bars (Base of Chart)</span>
+          <div class="ctrl-group">
+            <span class="ctrl-label">Volume</span>
+            <label class="inline-check">
               <input id="volume-toggle" type="checkbox" checked />
+              <span>Show Bars</span>
             </label>
           </div>
 
           <div id="status-bar" class="status-bar">Ready.</div>
         </div>
-      </aside>
-    </div>
+      </div>
 
-    <!-- MIDDLE: Narrow Indicator Sub-Charts -->
+      <div class="logo-wrap">
+        <img src="logo.jpg" alt="Hobbes Finance Logo" />
+      </div>
+    </header>
+
+    <!-- FULL-WIDTH TICKER BANNER & MAIN CHART -->
+    <section>
+      <div class="ticker-banner">
+        <div class="ticker-title">
+          <span id="display-symbol" class="ticker-symbol">RY.TO</span>
+          <span id="display-name" class="ticker-name">Loading...</span>
+          <span id="display-exchange" class="badge"></span>
+        </div>
+        <div class="ticker-meta">
+          <span id="display-price" class="price-now">--</span>
+          <span id="display-change" class="price-change">--</span>
+          <span id="cache-badge" class="badge" style="display:none;"></span>
+        </div>
+      </div>
+
+      <div class="chart-box">
+        <div id="main-legend" class="chart-legend"></div>
+        <div id="main-chart"></div>
+      </div>
+    </section>
+
+    <!-- FULL-WIDTH NARROW INDICATOR SUB-CHARTS -->
     <section class="subcharts-section">
       <div id="ma-sub-wrap" class="subchart-wrapper">
         <div class="subchart-header">
@@ -495,7 +560,7 @@
       </div>
     </section>
 
-    <!-- BOTTOM: Indicator Controls -->
+    <!-- INDICATOR CONTROLS -->
     <section class="indicators-section">
       <div class="indicators-grid">
         <!-- Moving Average Card -->
@@ -516,13 +581,6 @@
             <span>Show Narrow Sub-Chart</span>
             <input id="ma-sub-toggle" type="checkbox" checked />
           </label>
-          <div>
-            <span class="field-label">Sub-Chart Mode (20Y Log-Price Percentiles)</span>
-            <div class="seg-group">
-              <button class="seg-btn active" data-mode-group="ma" data-mode="raw">Raw (%)</button>
-              <button class="seg-btn" data-mode-group="ma" data-mode="percentile">Percentiles</button>
-            </div>
-          </div>
         </div>
 
         <!-- RSI Card -->
@@ -539,13 +597,6 @@
             <span>Show Narrow Sub-Chart</span>
             <input id="rsi-sub-toggle" type="checkbox" checked />
           </label>
-          <div>
-            <span class="field-label">Mode (20Y Log-Price Percentiles)</span>
-            <div class="seg-group">
-              <button class="seg-btn active" data-mode-group="rsi" data-mode="raw">Raw</button>
-              <button class="seg-btn" data-mode-group="rsi" data-mode="percentile">Percentiles</button>
-            </div>
-          </div>
         </div>
 
         <!-- MACD Card -->
@@ -568,19 +619,23 @@
             <span>Show Narrow Sub-Chart</span>
             <input id="macd-sub-toggle" type="checkbox" />
           </label>
-          <div>
-            <span class="field-label">Mode (20Y Log-Price Percentiles)</span>
-            <div class="seg-group">
-              <button class="seg-btn active" data-mode-group="macd" data-mode="raw">Raw</button>
-              <button class="seg-btn" data-mode-group="macd" data-mode="percentile">Percentiles</button>
-            </div>
-          </div>
+        </div>
+      </div>
+
+      <!-- GLOBAL RAW VS PERCENTILES TOGGLE (Applies to all 3 indicators) -->
+      <div class="global-mode-bar">
+        <div class="global-mode-label">
+          <span class="global-mode-title">Indicator Calculation Mode (MA, RSI &amp; MACD)</span>
+          <span class="global-mode-desc">Switch all sub-charts between traditional raw values and 20-year log-price percentiles (0–100%).</span>
+        </div>
+        <div class="global-seg-group">
+          <button id="mode-raw" class="seg-btn active">Raw</button>
+          <button id="mode-percentile" class="seg-btn">Percentiles (20Y Log)</button>
         </div>
       </div>
     </section>
   </div>
 
-  <!-- Firebase SDK (Optional Firestore Caching - activates once config is pasted in app.js) -->
   <script type="module" src="app.js"></script>
 </body>
 </html>
