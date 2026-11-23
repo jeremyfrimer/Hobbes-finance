@@ -34,13 +34,20 @@
       margin: 0 auto;
     }
 
-    /* TOP BAR: Controls (Left) + Logo (Right) */
+    /* TOP BAR: Controls + Ticker Banner (Left) & Larger Logo (Right) */
     .top-header {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 115px;
-      gap: 16px;
+      grid-template-columns: minmax(0, 1fr) 180px;
+      gap: 18px;
       align-items: center;
-      margin-bottom: 14px;
+      margin-bottom: 10px;
+    }
+
+    .header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
     }
 
     .top-controls {
@@ -78,6 +85,7 @@
       display: flex;
       gap: 5px;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     input[type="text"],
@@ -159,11 +167,47 @@
       margin: 0;
     }
 
+    .volume-inline {
+      margin-left: 12px;
+    }
+
+    .shortcut-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 5px;
+      margin-top: 2px;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+
+    .shortcut-label {
+      font-weight: 700;
+      margin-right: 2px;
+    }
+
+    .shortcut-chip {
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    .shortcut-chip:hover {
+      background: #e2e8f0;
+      border-color: var(--navy);
+    }
+
     .status-bar {
       font-size: 0.78rem;
       color: var(--muted);
       margin-left: auto;
-      align-self: center;
+      align-self: flex-end;
+      padding-bottom: 2px;
     }
 
     .status-bar.error {
@@ -178,20 +222,19 @@
     }
 
     .logo-wrap img {
-      width: 110px;
-      height: 110px;
+      width: 175px;
+      height: 175px;
       object-fit: contain;
       border-radius: 50%;
     }
 
-    /* FULL-WIDTH TICKER BANNER & MAIN CHART */
+    /* TICKER BANNER & MAIN CHART */
     .ticker-banner {
       display: flex;
       flex-wrap: wrap;
       align-items: baseline;
       justify-content: space-between;
       gap: 10px;
-      margin-bottom: 8px;
       padding-bottom: 7px;
       border-bottom: 2px solid var(--navy);
     }
@@ -305,12 +348,40 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 6px 12px;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 7px 12px;
       background: var(--surface);
       border-bottom: 1px solid #e2e8f0;
-      font-size: 0.84rem;
+      font-size: 0.88rem;
       font-weight: 700;
     }
+
+    .subchart-readout {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .pct-verdict {
+      font-size: 1.08rem;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+    }
+
+    .pct-num {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .verdict-black-swan { color: #065f46; }
+    .verdict-ext-low    { color: #15803d; }
+    .verdict-low        { color: #0f766e; }
+    .verdict-mid        { color: #334155; }
+    .verdict-high       { color: #c2410c; }
+    .verdict-ext-high   { color: #dc2626; }
+    .verdict-historic   { color: #991b1b; }
 
     .subchart-canvas {
       width: 100%;
@@ -412,7 +483,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 6px;
-      min-width: 280px;
+      min-width: 260px;
     }
 
     .global-seg-group .seg-btn {
@@ -427,6 +498,10 @@
       .logo-wrap {
         order: -1;
       }
+      .logo-wrap img {
+        width: 125px;
+        height: 125px;
+      }
       .indicators-grid {
         grid-template-columns: 1fr;
       }
@@ -438,72 +513,94 @@
 </head>
 <body>
   <div class="app-shell">
-    <!-- TOP BAR: All Main Graph Controls (Left) + Logo (Right) -->
+    <!-- TOP BAR: Controls + Ticker Banner (Left) & Larger Logo (Right) -->
     <header class="top-header">
-      <div class="top-controls">
-        <!-- Row 1: Ticker, Timeframe, Chart Type, Scale -->
-        <div class="controls-row">
-          <div class="ctrl-group">
-            <label class="ctrl-label" for="ticker-input">Ticker Symbol</label>
-            <div class="input-row">
-              <input id="ticker-input" type="text" value="RY.TO" placeholder="RY.TO, NVDA, WTI" title="Supports US, TSX (.TO), TSXV (.V), or shortcuts: S&P, TSX, WTI, GOLD" />
-              <button id="load-btn" class="btn-primary">Load</button>
+      <div class="header-main">
+        <div class="top-controls">
+          <!-- Row 1: Ticker, Timeframe, Chart Type, Scale -->
+          <div class="controls-row">
+            <div class="ctrl-group">
+              <label class="ctrl-label" for="ticker-input">Ticker Symbol</label>
+              <div class="input-row">
+                <input id="ticker-input" type="text" value="RY.TO" placeholder="RY.TO, NVDA, OIL" title="Supports US, TSX (.TO), TSXV (.V), or shortcuts: S&P, TSX, NASDAQ, DOW, OIL, GOLD, CAD" />
+                <button id="load-btn" class="btn-primary">Load</button>
+              </div>
+            </div>
+
+            <div class="ctrl-group">
+              <span class="ctrl-label">Timeframe</span>
+              <div class="btn-row" id="timeframe-buttons">
+                <button class="tf-btn" data-tf="3M">3M</button>
+                <button class="tf-btn" data-tf="6M">6M</button>
+                <button class="tf-btn" data-tf="12M">12M</button>
+                <button class="tf-btn" data-tf="2Y">2Y</button>
+                <button class="tf-btn active" data-tf="5Y">5Y</button>
+                <button class="tf-btn" data-tf="10Y">10Y</button>
+                <button class="tf-btn" data-tf="20Y">20Y</button>
+              </div>
+            </div>
+
+            <div class="ctrl-group">
+              <span class="ctrl-label">Chart Type</span>
+              <div class="btn-row">
+                <button id="type-line" class="seg-btn active">Line</button>
+                <button id="type-candle" class="seg-btn">Candle</button>
+              </div>
+            </div>
+
+            <div class="ctrl-group">
+              <span class="ctrl-label">Price Scale</span>
+              <div class="btn-row">
+                <button id="scale-linear" class="seg-btn active">Linear</button>
+                <button id="scale-log" class="seg-btn">Log</button>
+              </div>
             </div>
           </div>
 
-          <div class="ctrl-group">
-            <span class="ctrl-label">Timeframe</span>
-            <div class="btn-row" id="timeframe-buttons">
-              <button class="tf-btn" data-tf="3M">3M</button>
-              <button class="tf-btn" data-tf="6M">6M</button>
-              <button class="tf-btn" data-tf="12M">12M</button>
-              <button class="tf-btn" data-tf="2Y">2Y</button>
-              <button class="tf-btn active" data-tf="5Y">5Y</button>
-              <button class="tf-btn" data-tf="10Y">10Y</button>
-              <button class="tf-btn" data-tf="20Y">20Y</button>
+          <!-- Row 2: Normalized Comparison + Show Volume + Shortcuts + Status -->
+          <div class="controls-row">
+            <div class="ctrl-group">
+              <span class="ctrl-label">Normalized Comparison</span>
+              <div class="input-row">
+                <label class="inline-check" title="Anchored to primary ticker price at left edge of active timeframe">
+                  <input id="compare-toggle" type="checkbox" />
+                  <span>Compare</span>
+                </label>
+                <input id="compare-input" type="text" value="TSX" placeholder="S&P, TSX, OIL" title="Index or ticker to overlay, anchored to left edge of timeframe" />
+                <button id="compare-load-btn" class="btn-primary" style="background: var(--brown);">Set</button>
+                <label class="inline-check volume-inline">
+                  <input id="volume-toggle" type="checkbox" checked />
+                  <span>Show Volume</span>
+                </label>
+              </div>
+              <div class="shortcut-row" id="compare-shortcuts">
+                <span class="shortcut-label">Shortcuts:</span>
+                <button type="button" class="shortcut-chip" data-sym="S&amp;P">S&amp;P</button>
+                <button type="button" class="shortcut-chip" data-sym="TSX">TSX</button>
+                <button type="button" class="shortcut-chip" data-sym="NASDAQ">NASDAQ</button>
+                <button type="button" class="shortcut-chip" data-sym="DOW">DOW</button>
+                <button type="button" class="shortcut-chip" data-sym="OIL">OIL</button>
+                <button type="button" class="shortcut-chip" data-sym="GOLD">GOLD</button>
+                <button type="button" class="shortcut-chip" data-sym="CAD">CAD</button>
+              </div>
             </div>
-          </div>
 
-          <div class="ctrl-group">
-            <span class="ctrl-label">Chart Type</span>
-            <div class="btn-row">
-              <button id="type-line" class="seg-btn active">Line</button>
-              <button id="type-candle" class="seg-btn">Candle</button>
-            </div>
-          </div>
-
-          <div class="ctrl-group">
-            <span class="ctrl-label">Price Scale</span>
-            <div class="btn-row">
-              <button id="scale-linear" class="seg-btn active">Linear</button>
-              <button id="scale-log" class="seg-btn">Log</button>
-            </div>
+            <div id="status-bar" class="status-bar">Ready.</div>
           </div>
         </div>
 
-        <!-- Row 2: Normalized Comparison, Volume, Status -->
-        <div class="controls-row">
-          <div class="ctrl-group">
-            <span class="ctrl-label">Normalized Comparison</span>
-            <div class="input-row">
-              <label class="inline-check" title="Anchored to primary ticker price at left edge of active timeframe">
-                <input id="compare-toggle" type="checkbox" />
-                <span>Compare</span>
-              </label>
-              <input id="compare-input" type="text" value="TSX" placeholder="S&P, TSX, WTI" title="Index or ticker to overlay, anchored to left edge of timeframe" />
-              <button id="compare-load-btn" class="btn-primary" style="background: var(--brown);">Set</button>
-            </div>
+        <!-- TICKER BANNER -->
+        <div class="ticker-banner">
+          <div class="ticker-title">
+            <span id="display-symbol" class="ticker-symbol">RY.TO</span>
+            <span id="display-name" class="ticker-name">Loading...</span>
+            <span id="display-exchange" class="badge"></span>
           </div>
-
-          <div class="ctrl-group">
-            <span class="ctrl-label">Volume</span>
-            <label class="inline-check">
-              <input id="volume-toggle" type="checkbox" checked />
-              <span>Show Bars</span>
-            </label>
+          <div class="ticker-meta">
+            <span id="display-price" class="price-now">--</span>
+            <span id="display-change" class="price-change">--</span>
+            <span id="cache-badge" class="badge" style="display:none;"></span>
           </div>
-
-          <div id="status-bar" class="status-bar">Ready.</div>
         </div>
       </div>
 
@@ -512,21 +609,8 @@
       </div>
     </header>
 
-    <!-- FULL-WIDTH TICKER BANNER & MAIN CHART -->
+    <!-- FULL-WIDTH MAIN CHART -->
     <section>
-      <div class="ticker-banner">
-        <div class="ticker-title">
-          <span id="display-symbol" class="ticker-symbol">RY.TO</span>
-          <span id="display-name" class="ticker-name">Loading...</span>
-          <span id="display-exchange" class="badge"></span>
-        </div>
-        <div class="ticker-meta">
-          <span id="display-price" class="price-now">--</span>
-          <span id="display-change" class="price-change">--</span>
-          <span id="cache-badge" class="badge" style="display:none;"></span>
-        </div>
-      </div>
-
       <div class="chart-box">
         <div id="main-legend" class="chart-legend"></div>
         <div id="main-chart"></div>
@@ -538,7 +622,7 @@
       <div id="ma-sub-wrap" class="subchart-wrapper">
         <div class="subchart-header">
           <span id="ma-sub-title" style="color: var(--blue);">Moving Average Distance</span>
-          <span id="ma-sub-readout"></span>
+          <span id="ma-sub-readout" class="subchart-readout"></span>
         </div>
         <div id="ma-chart" class="subchart-canvas"></div>
       </div>
@@ -546,7 +630,7 @@
       <div id="rsi-sub-wrap" class="subchart-wrapper">
         <div class="subchart-header">
           <span id="rsi-sub-title" style="color: var(--green);">RSI</span>
-          <span id="rsi-sub-readout"></span>
+          <span id="rsi-sub-readout" class="subchart-readout"></span>
         </div>
         <div id="rsi-chart" class="subchart-canvas"></div>
       </div>
@@ -554,7 +638,7 @@
       <div id="macd-sub-wrap" class="subchart-wrapper hidden">
         <div class="subchart-header">
           <span id="macd-sub-title" style="color: var(--brown);">MACD</span>
-          <span id="macd-sub-readout"></span>
+          <span id="macd-sub-readout" class="subchart-readout"></span>
         </div>
         <div id="macd-chart" class="subchart-canvas"></div>
       </div>
@@ -571,71 +655,4 @@
           </div>
           <div>
             <label class="field-label" for="ma-period">Days</label>
-            <input id="ma-period" type="number" min="2" max="500" value="200" />
-          </div>
-          <label class="toggle-row">
-            <span>Plot on Main Graph</span>
-            <input id="ma-overlay-toggle" type="checkbox" checked />
-          </label>
-          <label class="toggle-row">
-            <span>Show Narrow Sub-Chart</span>
-            <input id="ma-sub-toggle" type="checkbox" checked />
-          </label>
-        </div>
-
-        <!-- RSI Card -->
-        <div class="indicator-card">
-          <div class="card-title">
-            <span>2. RSI</span>
-            <span class="swatch" style="background: var(--green); width: 18px;"></span>
-          </div>
-          <div>
-            <label class="field-label" for="rsi-period">Days</label>
-            <input id="rsi-period" type="number" min="2" max="200" value="14" />
-          </div>
-          <label class="toggle-row">
-            <span>Show Narrow Sub-Chart</span>
-            <input id="rsi-sub-toggle" type="checkbox" checked />
-          </label>
-        </div>
-
-        <!-- MACD Card -->
-        <div class="indicator-card">
-          <div class="card-title">
-            <span>3. MACD</span>
-            <span class="swatch" style="background: var(--brown); width: 18px;"></span>
-          </div>
-          <div class="field-pair">
-            <div>
-              <label class="field-label" for="macd-fast">Fast Days</label>
-              <input id="macd-fast" type="number" min="2" max="200" value="12" />
-            </div>
-            <div>
-              <label class="field-label" for="macd-slow">Slow Days</label>
-              <input id="macd-slow" type="number" min="3" max="300" value="26" />
-            </div>
-          </div>
-          <label class="toggle-row">
-            <span>Show Narrow Sub-Chart</span>
-            <input id="macd-sub-toggle" type="checkbox" />
-          </label>
-        </div>
-      </div>
-
-      <!-- GLOBAL RAW VS PERCENTILES TOGGLE (Applies to all 3 indicators) -->
-      <div class="global-mode-bar">
-        <div class="global-mode-label">
-          <span class="global-mode-title">Indicator Calculation Mode (MA, RSI &amp; MACD)</span>
-          <span class="global-mode-desc">Switch all sub-charts between traditional raw values and 20-year log-price percentiles (0–100%).</span>
-        </div>
-        <div class="global-seg-group">
-          <button id="mode-raw" class="seg-btn active">Raw</button>
-          <button id="mode-percentile" class="seg-btn">Percentiles (20Y Log)</button>
-        </div>
-      </div>
-    </section>
-  </div>
-
-  <script type="module" src="app.js"></script>
-</body>
-</html>
+            <input id="ma-period" type="number" min="2"
