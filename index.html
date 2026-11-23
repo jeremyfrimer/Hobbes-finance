@@ -655,4 +655,71 @@
           </div>
           <div>
             <label class="field-label" for="ma-period">Days</label>
-            <input id="ma-period" type="number" min="2"
+            <input id="ma-period" type="number" min="2" max="500" value="200" />
+          </div>
+          <label class="toggle-row">
+            <span>Plot on Main Graph</span>
+            <input id="ma-overlay-toggle" type="checkbox" checked />
+          </label>
+          <label class="toggle-row">
+            <span>Show Narrow Sub-Chart</span>
+            <input id="ma-sub-toggle" type="checkbox" checked />
+          </label>
+        </div>
+
+        <!-- RSI Card -->
+        <div class="indicator-card">
+          <div class="card-title">
+            <span>2. RSI</span>
+            <span class="swatch" style="background: var(--green); width: 18px;"></span>
+          </div>
+          <div>
+            <label class="field-label" for="rsi-period">Days</label>
+            <input id="rsi-period" type="number" min="2" max="200" value="14" />
+          </div>
+          <label class="toggle-row">
+            <span>Show Narrow Sub-Chart</span>
+            <input id="rsi-sub-toggle" type="checkbox" checked />
+          </label>
+        </div>
+
+        <!-- MACD Card -->
+        <div class="indicator-card">
+          <div class="card-title">
+            <span>3. MACD</span>
+            <span class="swatch" style="background: var(--brown); width: 18px;"></span>
+          </div>
+          <div class="field-pair">
+            <div>
+              <label class="field-label" for="macd-fast">Fast Days</label>
+              <input id="macd-fast" type="number" min="2" max="200" value="12" />
+            </div>
+            <div>
+              <label class="field-label" for="macd-slow">Slow Days</label>
+              <input id="macd-slow" type="number" min="3" max="300" value="26" />
+            </div>
+          </div>
+          <label class="toggle-row">
+            <span>Show Narrow Sub-Chart</span>
+            <input id="macd-sub-toggle" type="checkbox" />
+          </label>
+        </div>
+      </div>
+
+      <!-- GLOBAL RAW VS PERCENTILES TOGGLE (Applies to all 3 indicators) -->
+      <div class="global-mode-bar">
+        <div class="global-mode-label">
+          <span class="global-mode-title">Indicator Display Mode (MA, RSI &amp; MACD)</span>
+          <span class="global-mode-desc">Switch sub-charts between raw values and historical percentiles (0–100%).</span>
+        </div>
+        <div class="global-seg-group">
+          <button id="mode-raw" class="seg-btn active">Raw</button>
+          <button id="mode-percentile" class="seg-btn">Percentiles</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
