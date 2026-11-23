@@ -188,7 +188,7 @@ async function fetchTickerData(rawSymbol) {
 }
 
 // =========================================================================
-// 4. TECHNICAL INDICATOR MATH (RAW + 20-YEAR LOG-PRICE PERCENTILES)
+// 4. TECHNICAL INDICATOR MATH & PERCENTILE FORMATTING
 // =========================================================================
 function computeSMA(values, period) {
   const out = new Array(values.length).fill(null);
@@ -263,7 +263,65 @@ function toPercentiles(series) {
       else hi = mid;
     }
     const avgRank = (lower + (lo - 1)) / 2;
-    return Number(((avgRank / (n - 1)) * 100).toFixed(2));
+    return Math.round((avgRank / (n - 1)) * 100);
+  });
+}
+
+function formatOrdinal(num) {
+  const n = Math.round(num);
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 13) return `${n}th`;
+  const mod10 = n % 10;
+  if (mod10 === 1) return `${n}st`;
+  if (mod10 === 2) return `${n}nd`;
+  if (mod10 === 3) return `${n}rd`;
+  return `${n}th`;
+}
+
+function getPercentileLabel(num) {
+  const n = Math.round(num);
+  if (n <= 2)  return { text: "Black Swan Event", cls: "verdict-black-swan" };
+  if (n <= 10) return { text: "Extremely Low",    cls: "verdict-ext-low" };
+  if (n <= 25) return { text: "Low",              cls: "verdict-low" };
+  if (n <= 40) return { text: "Below Average",    cls: "verdict-mid" };
+  if (n <= 59) return { text: "Average",          cls: "verdict-mid" };
+  if (n <= 74) return { text: "Above Average",    cls: "verdict-mid" };
+  if (n <= 89) return { text: "High",             cls: "verdict-high" };
+  if (n <= 97) return { text: "Extremely High",   cls: "verdict-ext-high" };
+  return              { text: "Historic Extreme", cls: "verdict-historic" };
+}
+
+function renderPercentileReadout(elId, val) {
+  const el = document.getElementById(elId);
+  if (val == null || !isFinite(val)) {
+    el.innerHTML = "";
+    return;
+  }
+  const { text, cls } = getPercentileLabel(val);
+  el.innerHTML = `<span class="pct-verdict ${cls}">${text}</span><span class="pct-num">(${formatOrdinal(val)} percentile)</span>`;
+}
+
+function addPercentileGuideLines(series) {
+  series.createPriceLine({
+    price: 100,
+    color: "#000000",
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Solid,
+    axisLabelVisible: false
+  });
+  series.createPriceLine({
+    price: 50,
+    color: "#94a3b8",
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Dashed,
+    axisLabelVisible: false
+  });
+  series.createPriceLine({
+    price: 0,
+    color: "#000000",
+    lineWidth: 1,
+    lineStyle: LightweightCharts.LineStyle.Solid,
+    axisLabelVisible: false
   });
 }
 
@@ -340,6 +398,12 @@ function syncChartTimeScales(activeCharts) {
 const PCT_AUTOSCALE = () => ({
   priceRange: { minValue: 0, maxValue: 100 }
 });
+
+const PCT_PRICE_FORMAT = {
+  type: "price",
+  precision: 0,
+  minMove: 1
+};
 
 // =========================================================================
 // 6. RENDER EVERYTHING
@@ -527,7 +591,7 @@ function renderAll() {
   charts.main.timeScale().fitContent();
   const activeCharts = [charts.main];
 
-  const pctScaleOpts = isPct ? { scaleMargins: { top: 0.04, bottom: 0.04 } } : {};
+  const pctScaleOpts = isPct ? { scaleMargins: { top: 0.06, bottom: 0.06 } } : {};
 
   // --- Sub-Chart 1: MA Distance ---
   const maWrap = document.getElementById("ma-sub-wrap");
@@ -537,23 +601,27 @@ function renderAll() {
     const lastVal = data.length ? data[data.length - 1].value : null;
 
     document.getElementById("ma-sub-title").textContent = isPct
-      ? `Distance from ${maPeriod}D MA — 20Y Log-Price Percentile (0–100%)`
+      ? `Distance from ${maPeriod}D MA — Percentile`
       : `Distance from ${maPeriod}D MA — Raw (%)`;
-    document.getElementById("ma-sub-readout").textContent =
-      lastVal != null ? (isPct ? `${lastVal.toFixed(1)}th %ile` : `${lastVal >= 0 ? "+" : ""}${lastVal.toFixed(2)}%`) : "";
+
+    if (isPct) {
+      renderPercentileReadout("ma-sub-readout", lastVal);
+    } else {
+      document.getElementById("ma-sub-readout").textContent =
+        lastVal != null ? `${lastVal >= 0 ? "+" : ""}${lastVal.toFixed(2)}%` : "";
+    }
 
     charts.ma = createBaseChart(document.getElementById("ma-chart"), 155, pctScaleOpts);
     const s = charts.ma.addLineSeries({
       color: COLORS.blue,
       lineWidth: 2,
+      priceFormat: isPct ? PCT_PRICE_FORMAT : undefined,
       autoscaleInfoProvider: isPct ? PCT_AUTOSCALE : undefined
     });
     s.setData(data);
 
     if (isPct) {
-      s.createPriceLine({ price: 80, color: COLORS.red, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
-      s.createPriceLine({ price: 50, color: "#64748b", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
-      s.createPriceLine({ price: 20, color: COLORS.green, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+      addPercentileGuideLines(s);
     } else {
       s.createPriceLine({ price: 0, color: "#475569", lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
     }
@@ -571,24 +639,32 @@ function renderAll() {
     const lastVal = data.length ? data[data.length - 1].value : null;
 
     document.getElementById("rsi-sub-title").textContent = isPct
-      ? `RSI (${rsiPeriod}) — 20Y Log-Price Percentile (0–100%)`
+      ? `RSI (${rsiPeriod}) — Percentile`
       : `RSI (${rsiPeriod}) — Raw`;
-    document.getElementById("rsi-sub-readout").textContent =
-      lastVal != null ? (isPct ? `${lastVal.toFixed(1)}th %ile` : lastVal.toFixed(1)) : "";
+
+    if (isPct) {
+      renderPercentileReadout("rsi-sub-readout", lastVal);
+    } else {
+      document.getElementById("rsi-sub-readout").textContent =
+        lastVal != null ? lastVal.toFixed(1) : "";
+    }
 
     charts.rsi = createBaseChart(document.getElementById("rsi-chart"), 155, pctScaleOpts);
     const s = charts.rsi.addLineSeries({
       color: COLORS.green,
       lineWidth: 2,
+      priceFormat: isPct ? PCT_PRICE_FORMAT : undefined,
       autoscaleInfoProvider: isPct ? PCT_AUTOSCALE : undefined
     });
     s.setData(data);
 
-    const hiLine = isPct ? 80 : 70;
-    const loLine = isPct ? 20 : 30;
-    s.createPriceLine({ price: hiLine, color: COLORS.red, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
-    s.createPriceLine({ price: 50, color: "#64748b", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
-    s.createPriceLine({ price: loLine, color: COLORS.green, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+    if (isPct) {
+      addPercentileGuideLines(s);
+    } else {
+      s.createPriceLine({ price: 70, color: COLORS.red, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+      s.createPriceLine({ price: 50, color: "#64748b", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
+      s.createPriceLine({ price: 30, color: COLORS.green, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+    }
 
     charts.rsi.timeScale().fitContent();
     activeCharts.push(charts.rsi);
@@ -602,7 +678,7 @@ function renderAll() {
     macdWrap.classList.remove("hidden");
 
     document.getElementById("macd-sub-title").textContent = isPct
-      ? `MACD (${macdFast}, ${macdSlow}) — 20Y Log-Price Percentile (0–100%)`
+      ? `MACD (${macdFast}, ${macdSlow}) — Percentile`
       : `MACD (${macdFast}, ${macdSlow}, 9) — Raw`;
 
     charts.macd = createBaseChart(document.getElementById("macd-chart"), 155, pctScaleOpts);
@@ -610,18 +686,16 @@ function renderAll() {
     if (isPct) {
       const data = sliceSeries(macdPercentiles);
       const lastVal = data.length ? data[data.length - 1].value : null;
-      document.getElementById("macd-sub-readout").textContent =
-        lastVal != null ? `${lastVal.toFixed(1)}th %ile` : "";
+      renderPercentileReadout("macd-sub-readout", lastVal);
 
       const s = charts.macd.addLineSeries({
         color: COLORS.brown,
         lineWidth: 2,
+        priceFormat: PCT_PRICE_FORMAT,
         autoscaleInfoProvider: PCT_AUTOSCALE
       });
       s.setData(data);
-      s.createPriceLine({ price: 80, color: COLORS.red, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
-      s.createPriceLine({ price: 50, color: "#64748b", lineWidth: 1, lineStyle: 2, axisLabelVisible: false });
-      s.createPriceLine({ price: 20, color: COLORS.green, lineWidth: 1, lineStyle: 2, axisLabelVisible: true });
+      addPercentileGuideLines(s);
     } else {
       const histData = sliceSeries(macdHistRaw).map((p) => ({
         time: p.time,
@@ -771,6 +845,17 @@ document.getElementById("compare-input").addEventListener("keydown", async (e) =
     savePrefs();
     await loadCompareTicker(e.target.value);
   }
+});
+
+document.getElementById("compare-shortcuts").addEventListener("click", async (e) => {
+  const chip = e.target.closest(".shortcut-chip");
+  if (!chip) return;
+  const sym = chip.dataset.sym;
+  document.getElementById("compare-input").value = sym;
+  document.getElementById("compare-toggle").checked = true;
+  state.compareOn = true;
+  savePrefs();
+  await loadCompareTicker(sym);
 });
 
 document.getElementById("volume-toggle").addEventListener("change", (e) => {
